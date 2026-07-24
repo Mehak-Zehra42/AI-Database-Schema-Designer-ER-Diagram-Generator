@@ -735,7 +735,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const boundsHeight = maxY - minY;
 
         // 5. Shift elements so the top-leftmost card is positioned at (padding, padding)
-        const viewportGroup = svgClone.getElementById("canvas-viewport");
+        const viewportGroup = svgClone.querySelector("#canvas-viewport");
         if (viewportGroup) {
             // Remove zoom transforms in the download, represent it fully normal scale (1:1)
             viewportGroup.setAttribute("transform", `translate(${-minX}, ${-minY}) scale(1)`);
@@ -747,7 +747,7 @@ document.addEventListener("DOMContentLoaded", () => {
         svgClone.setAttribute("viewBox", `0 0 ${boundsWidth} ${boundsHeight}`);
         
         // Style background rect to match boundaries
-        const bgRect = svgClone.getElementById("canvas-background");
+        const bgRect = svgClone.querySelector("#canvas-background");
         if (bgRect) {
             bgRect.setAttribute("width", "100%");
             bgRect.setAttribute("height", "100%");
