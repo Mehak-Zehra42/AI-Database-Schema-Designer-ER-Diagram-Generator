@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Database Schema Designer & ER-Diagram Generator</title>
+    <!-- Fonts and Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <!-- Main Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar: Prompt & Control Console -->
+        <aside class="console-sidebar">
+            <div class="brand">
+                <span class="material-icons-round brand-icon">hub</span>
+                <div class="brand-text">
+                    <h1>SchemaFlow AI</h1>
+                    <span class="subtext">ER-Diagram Generator</span>
+                </div>
+            </div>
+
+            <!-- API Configuration -->
+            <div class="panel api-panel">
+                <div class="panel-header">
+                    <span class="material-icons-round">vpn_key</span>
+                    <h3>Gemini API Setup</h3>
+                </div>
+                <div class="panel-body">
+                    <div class="input-group">
+                        <input type="password" id="api-key-input" placeholder="Paste your API key here" autocomplete="current-password">
+                        <button id="btn-save-key" class="btn btn-secondary btn-icon-only" title="Save API Key">
+                            <span class="material-icons-round">save</span>
+                        </button>
+                    </div>
+                    <p class="help-text">
+                        Get a free key from <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Google AI Studio</a>. Stored locally in your browser.
+                    </p>
+                    <div id="api-status-badge" class="badge badge-error">
+                        <span class="indicator"></span>
+                        <span class="badge-text">API Key Missing</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Prompter -->
+            <div class="panel prompt-panel">
+                <div class="panel-header">
+                    <span class="material-icons-round">psychology</span>
+                    <h3>Generate with AI</h3>
+                </div>
+                <div class="panel-body">
+                    <textarea id="prompt-input" placeholder="Describe your database schema... e.g. An e-commerce platform with users, orders, product inventory, reviews, and a shopping cart system. Make sure to link products to orders."></textarea>
+                    <button id="btn-generate" class="btn btn-primary btn-full">
+                        <span class="material-icons-round">bolt</span>
+                        <span>Generate Schema</span>
+                    </button>
+
+                    <div class="prompt-presets">
+                        <h4>Try these examples:</h4>
+                        <button class="preset-btn" data-prompt="E-Commerce marketplace with products, categories, orders, order items, users, and customer reviews. Connect tables using appropriate primary and foreign keys.">
+                            🛒 E-Commerce Shop
+                        </button>
+                        <button class="preset-btn" data-prompt="Social media blog network. Needs users, posts, categories, comments, tags, post_tags, and user profiles. Add proper references.">
+                            📝 Blog & Comments
+                        </button>
+                        <button class="preset-btn" data-prompt="SaaS Subscription billing system. Includes users, subscriptions, plans, billing receipts, user logs, and credit card profiles.">
+                            💳 SaaS Billing System
+                        </button>
+                        <button class="preset-btn" data-prompt="School information management system. Tables for students, teachers, classes, enrollments, grades, and attendance tracking.">
+                            🏫 School Database
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas Info & Shortcuts -->
+            <div class="panel info-panel">
+                <div class="panel-header">
+                    <span class="material-icons-round">keyboard</span>
+                    <h3>Canvas Controls</h3>
+                </div>
+                <div class="panel-body">
+                    <ul class="control-shortcuts">
+                        <li><span>Drag Card</span> Header bar drag</li>
+                        <li><span>Pan Canvas</span> Drag empty background</li>
+                        <li><span>Zoom</span> Mouse scroll wheel</li>
+                        <li><span>Edit Card</span> Click on any table</li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="workspace">
+            <!-- Workspace Top Control Bar -->
+            <header class="workspace-header">
+                <div class="action-left">
+                    <button id="btn-add-table" class="btn btn-glass">
+                        <span class="material-icons-round">add_box</span>
+                        <span>New Table</span>
+                    </button>
+                </div>
+                <div class="action-right">
+                    <button id="btn-show-sql" class="btn btn-glass" disabled>
+                        <span class="material-icons-round">code</span>
+                        <span>Export SQL</span>
+                    </button>
+                    <button id="btn-export-svg" class="btn btn-glass" disabled>
+                        <span class="material-icons-round">download</span>
+                        <span>Export SVG</span>
+                    </button>
+                    <button id="btn-clear" class="btn btn-glass btn-danger">
+                        <span class="material-icons-round">delete_sweep</span>
+                        <span>Clear All</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- SVG Drawing Canvas Container -->
+            <div class="canvas-container" id="canvas-container">
+                <svg id="svg-canvas" width="100%" height="100%">
+                    <defs>
+                        <!-- SVG Grid Pattern -->
+                        <pattern id="grid-pattern" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <circle cx="2" cy="2" r="1.5" fill="rgba(255, 255, 255, 0.07)" />
+                        </pattern>
+                        <!-- Connector Arrow Definition -->
+                        <marker id="arrow-marker" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="rgba(99, 102, 241, 0.95)" />
+                        </marker>
+                        <!-- Connector Hover Arrow Definition -->
+                        <marker id="arrow-marker-hover" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#10b981" />
+                        </marker>
+                    </defs>
+                    <!-- Background Grid -->
+                    <rect width="100%" height="100%" fill="url(#grid-pattern)" id="canvas-background" />
+                    
+                    <!-- Viewport Group: Zooming & Panning affects this group -->
+                    <g id="canvas-viewport" transform="translate(0,0) scale(1)">
+                        <!-- Connection lines draw behind tables -->
+                        <g id="connections-group"></g>
+                        <!-- Table cards draw in front -->
+                        <g id="tables-group"></g>
+                    </g>
+                </svg>
+
+                <!-- Floating Canvas Navigation Controls -->
+                <div class="canvas-navigation-controls">
+                    <button id="btn-zoom-in" title="Zoom In">
+                        <span class="material-icons-round">zoom_in</span>
+                    </button>
+                    <button id="btn-zoom-out" title="Zoom Out">
+                        <span class="material-icons-round">zoom_out</span>
+                    </button>
+                    <button id="btn-zoom-reset" title="Reset Zoom">
+                        <span class="material-icons-round">restart_alt</span>
+                    </button>
+                    <button id="btn-zoom-fit" title="Fit to Screen">
+                        <span class="material-icons-round">fit_screen</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Side: Entity Configuration Sidebar -->
+        <aside class="editor-sidebar" id="editor-sidebar">
+            <div class="sidebar-header">
+                <span class="material-icons-round">settings</span>
+                <h3 id="sidebar-title">Edit Table</h3>
+                <button id="btn-close-sidebar" class="btn-icon-only">
+                    <span class="material-icons-round">close</span>
+                </button>
+            </div>
+            <div class="sidebar-body">
+                <!-- Table Details -->
+                <div class="edit-group">
+                    <label for="edit-table-name">Table Name</label>
+                    <input type="text" id="edit-table-name" placeholder="e.g. users">
+                </div>
+
+                <!-- Column List Header -->
+                <div class="columns-editor-section">
+                    <div class="section-title">
+                        <h4>Columns</h4>
+                        <button id="btn-add-column" class="btn btn-secondary btn-sm">
+                            <span class="material-icons-round">add</span> Add
+                        </button>
+                    </div>
+
+                    <!-- Column list container -->
+                    <div class="columns-list" id="columns-list-container">
+                        <!-- Dynamic items -->
+                    </div>
+                </div>
+
+                <!-- Danger Zone -->
+                <div class="danger-zone">
+                    <h4>Danger Zone</h4>
+                    <button id="btn-delete-table" class="btn btn-danger btn-full">
+                        <span class="material-icons-round">delete</span>
+                        Delete Table
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loading-overlay">
+            <div class="loader-content">
+                <div class="glow-spinner"></div>
+                <div class="loader-text">
+                    <h3>Generating Schema</h3>
+                    <p>Gemini AI is analyzing requirements and structuring entities...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SQL Export Modal -->
+        <div class="modal-backdrop" id="sql-modal">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <span class="material-icons-round text-primary">terminal</span>
+                        <h3>Export SQL Scripts</h3>
+                    </div>
+                    <button class="btn-icon-only" id="btn-close-modal">
+                        <span class="material-icons-round">close</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tabs -->
+                    <div class="modal-tabs">
+                        <button class="tab-btn active" data-db="postgresql">PostgreSQL</button>
+                        <button class="tab-btn" data-db="mysql">MySQL</button>
+                        <button class="tab-btn" data-db="sqlite">SQLite</button>
+                    </div>
+                    
+                    <!-- Code block viewer -->
+                    <div class="sql-viewer">
+                        <pre><code id="sql-code-block" class="language-sql">-- SQL script will render here</code></pre>
+                        <button id="btn-copy-sql" class="btn btn-copy" title="Copy to clipboard">
+                            <span class="material-icons-round">content_copy</span>
+                            <span>Copy</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btn-download-sql" class="btn btn-primary">
+                        <span class="material-icons-round">download</span>
+                        <span>Download .sql File</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App JavaScript Modules -->
+    <script src="js/gemini.js"></script>
+    <script src="js/sql.js"></script>
+    <script src="js/canvas.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
